@@ -1,0 +1,182 @@
+---
+title: Do you still need to run the ball in modern college football?
+author: Jansen Coburn
+date: '2022-04-08'
+slug: do-you-still-need-to-run-the-ball-in-modern-college-football
+categories: []
+tags: []
+---
+
+College football has evolved significantly in the past 20 years into a pass-heavy league. You don't need to look at stats to prove this. Just turn on the TV on Saturday and watch what teams are running play after play. I've long been a believer that teams that ONLY pass the ball are one-dimensional and thus become predictable to opposing defenses. I'd like to know if that long-standing belief has merit, and I intend to conclude once and for all if teams should be running the damn ball. So, to do that, we are going to look at the 25 best offenses from 2021 side-by-side with their record, overall offensive ranking, and rushing offensive ranking. 
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+```
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+library(tidyverse)
+library(gt)
+library(ggrepel)
+library(ggalt)
+```
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+cfb21 <-read_csv("cfb21.csv")
+```
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+offense21 <- cfb21 %>% 
+select(Team, `Win-Loss`, `Off Rank`, `Rushing Off Rank`) %>%
+  arrange(`Off Rank`) %>%
+  separate(Team, into=c("Team", "Conference"), sep=" \\(") %>%
+  mutate(Conference = gsub(")", "", Conference)) %>%
+  top_n(25, wt=-`Off Rank`)
+```
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+offense21 %>% 
+  gt() %>% 
+  cols_label(
+    `Win-Loss` = "Record",
+    `Off Rank` = "Offensive Rank",
+    `Rushing Off Rank` = "Rushing Offensive Rank"
+  ) %>%
+  tab_header(
+    title = "To be a Top 25 Offense, any scheme can work.",
+    subtitle = "The majority of the best offenses are bowl eligible. Run it or pass it, it's up to you."
+  ) %>%   tab_source_note(
+    source_note = md("**By:** Jansen Coburn  |  **Source:** College Football Data 2021")
+  ) %>%
+  tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping() %>% 
+  opt_table_lines("none") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#E41C38"),
+      cell_text(color = "white")
+      ),
+    locations = cells_body(
+      rows = Team == "Nebraska")
+  ) %>% 
+  opt_table_lines("none") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#990000"),
+      cell_text(color = "white")
+      ),
+    locations = cells_body(
+      rows = Team == "Southern California")
+  )
+```
+
+Of the 25 best offenses in the country from 2021, only two were not bowl eligible. Southern California (USC) and Nebraska. Based on this table alone, there is no evidence to suggest rushing offense will make or break a top-performing offense. Some teams in the top 25 of total offense are pretty good at running the ball. Some are not. The 2nd and 3rd best offenses from last year ranked 121st and 105th in rushing, respectively. Kent State had the 4th best total offense and the 3rd best rushing offense. They finished 7-7. They're a MAC team. 
+
+It would appear that a team's ability to run the ball is merely the result of preference. Alabama was 7th in the country in total offense in 2021, and 75th in rushing offense. Not too long ago their Heisman winners were running backs. 
+
+Teams that exclusively pass the ball and are bad at it become one-dimensional. In this instance, running the ball may help their cause only because they NEED to. So may you only consider running the ball if you're doing a poor job of passing it.
+
+How about touchdowns?
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+rushtoscore <- cfb21 %>% 
+select(Team, `Win-Loss`, `Off TDs`, `Rushing Off Rank`) %>%
+  arrange(desc(`Rushing Off Rank`)) %>%
+  separate(Team, into=c("Team", "Conference"), sep=" \\(") %>%
+  mutate(Conference = gsub(")", "", Conference))
+```
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+rushingtop25 <- cfb21 %>% 
+select(Team, `Rushing Off Rank`, `Off TDs`) %>%
+  filter(`Rushing Off Rank`<26)
+```
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+ggplot() + 
+  geom_point(data=rushtoscore, aes(x=`Rushing Off Rank`, y=`Off TDs`)) +
+  geom_smooth(data=rushtoscore, aes(x=`Rushing Off Rank`, y=`Off TDs`), method="lm", se=FALSE) + 
+    geom_point(data=rushingtop25, aes(x=`Rushing Off Rank`, y=`Off TDs`), color="red") + 
+  scale_x_reverse() +
+  labs(
+    x= "Rushing Offense Ranking",
+    y= "Offensive Touchdowns",
+    title="Run it better, score it better.",
+    subtitle="Of the 25 best rushing offenses in 2021, shown in red, only 4 scored fewer than 40 touchdowns.", 
+    caption="Source: College Football Data 2021 | By Jansen Coburn"
+    ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 9), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot"
+    ) 
+```
+
+If we take a look at all 130 teams from 2021 and the amount of touchdowns they scored, we can see that the best rushing offenses (in red) did a pretty good job of scoring touchdowns. Of the 25 best rushing offenses, only 4 scored fewer than 40 touchdowns. However, we can still see there were some teams who scored well over 40 touchdowns last season and were ranked relatively low in rushing offense. Let's take a look at the total touchdowns scored by the 25 best rushing offenses to see how they were getting into the endzone.
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+rushingtop25 <- cfb21 %>% 
+select(Team, `Rushing Off Rank`, `Off TDs`, `Rushing TD`, `Pass Touchdowns`) %>%
+    separate(Team, into=c("Team", "Conference"), sep=" \\(") %>%
+  filter(`Rushing Off Rank`<26)
+```
+
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+rushinglong <- rushingtop25 %>% select(Team, `Rushing TD`, `Pass Touchdowns`) %>% pivot_longer(cols=-Team, names_to="Type", values_to="Touchdowns")
+```
+
+
+
+
+```{r warning =FALSE, message=FALSE, echo=FALSE}
+ggplot() + 
+  geom_bar(data=rushinglong, aes(x=reorder(Team, Touchdowns), weight=Touchdowns, fill=Type)) + 
+  scale_fill_manual(values=c("#d4af37", "#4682B4"), name="Touchdowns", labels=c("Passing", "Rushing")) +
+  coord_flip() +
+  labs(
+    x= "",
+    y= "Offensive Touchdowns",
+    title="A balanced rushing and passing attack works well.",
+    subtitle="The teams best at running the football are generally pretty good at throwing it too.", 
+    caption="Source: College Football Data 2021 | By Jansen Coburn"
+    ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 9), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    plot.caption.position = "plot"
+    ) 
+
+```
+
+Well there you have it. Even the teams best at running the ball were pretty good at passing it too, at least as far as touchdowns go. If you see a team on this list with a thin strip of gold next to the blue, that means they did not score nearly as many passing touchdowns as they did rushing. The majority good rushing teams scored quite a few passing touchdowns to go along with their rushing touchdowns. Maybe there is still hope for those of us who want to run the damn ball in 2022 and beyond.
