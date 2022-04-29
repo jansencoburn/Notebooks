@@ -1,0 +1,273 @@
+---
+title: How bad was Nebraska special teams in 2021?
+author: Jansen Coburn
+date: '2022-04-29'
+slug: how-bad-was-nebraska-special-teams-in-2021
+categories: []
+tags: []
+---
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+library(tidyverse)
+library(rvest)
+library(puntr)
+library(ggrepel)
+library(cfbfastR)
+library(ggalt)
+library(scales)
+library(gt)
+library(cowplot)
+library(ggbeeswarm)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+url <- "https://www.goreivers.com/sports/fball/2019-20/bios/contreraz_chase_wvap"
+
+contreraziwcc <- url %>%
+  read_html() %>%
+  html_nodes(xpath = '//*[@id="mainbody"]/div[1]/div[4]/div/div[2]/div[1]/div/div[2]/div/table') %>%
+  html_table()
+
+contreraziwcc <- contreraziwcc[[1]]
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+punts <- read_csv("punts.csv")
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+kicking <- read_csv("placekicking.csv")
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+cfb21 <-read_csv("cfb21.csv")
+```
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+fei21 <- read_csv("fei21.csv")
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+biglist <- c("Michigan", "Nebraska", "Iowa", "Illinois", "Indiana", "Minnesota", "Maryland", "Michigan State", "Ohio State", "Purdue", "Wisconsin", "Rutgers", "Penn State", "Northwestern")
+
+bigten <- fei21 %>% filter(Team %in% biglist)
+nu <- bigten %>% filter(Team == "Nebraska")
+```
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+bigspecial <- bigten %>% 
+select(Team, Rk...1) %>%
+  arrange(Rk...1) %>%
+  top_n(14, wt=Rk...1)
+```
+
+The 2021 Nebraska Cornhuskers were considered by many to be one of the best 3-9 college football teams of all time. Close loss after close loss piled on as they went down to the wire with several top 25 and CFB playoff-caliber opponents. Perhaps most perplexing aisde from their record-breaking one-score losses was how well they performed on offense (20th nationally) and defense (47th nationally). However, football is a game of three phases, and special teams has perpetually plagued the Nebraska for years. Let's dive into how that unit performed this past season.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+bigspecial %>% 
+  gt() %>% 
+  cols_label(
+    Team = "Team",
+    Rk...1 = "Special Teams Ranking") %>%
+  tab_header(
+    title = "Nebraska special teams was worst in the B1G in 2021",
+    subtitle = "Nebraska ranked 129th in special teams, good enough for last place in the B1G \nand second to last among all FBS teams."
+  ) %>%   tab_source_note(
+    source_note = md("**By:** Jansen Coburn  |  **Source:** Football Outsiders")
+  ) %>%
+  tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping() %>% 
+  opt_table_lines("none") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#E41C38"),
+      cell_text(color = "white")
+      ),
+    locations = cells_body(
+      rows = Team == "Nebraska")
+  )
+```
+Poor special teams play was a consistent theme for Nebraska's 2021 football team from start to finish. Their 129th Fremeau Efficiency Index (FEI) ranking was the worst in the Big Ten, and second to worst in all of FBS college football. It was a significant factor in their 3-9 finish. Two of the biggest headaches for Nebraska seemed to be field goal kicking and punting. Let's take a deeper dive into how those two units performed. We'll start with place kicking.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+cleankicking <- kicking %>% 
+  separate(Player, into=c("Player", "School"), sep=",") %>% 
+  mutate(School = gsub("(FL)", "FL", School, fixed=TRUE)) %>%
+  mutate(School = gsub("(OH)", "OH", School, fixed=TRUE)) %>%
+  separate(School, into=c("School", "Conference"), sep="\\(") %>% 
+  mutate(Conference=gsub(")", "", Conference)) %>%
+  mutate(School = str_trim(School, side = c("both"))) %>%
+  mutate(PlayerSchool = paste(Player, School, sep=", "))
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+big <- cleankicking %>% filter(Conference == "Big Ten")
+nu <- cleankicking %>% filter(School == "Nebraska")
+```
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+ggplot() + 
+  geom_point(data=cleankicking, aes(x=Pct, y=FG), color="#808080", alpha=.5) +
+    geom_point(data=big, aes(x=Pct, y=FG), color="blue") + 
+    geom_point(data=nu, aes(x=Pct, y=FG), color="#E41C38") +
+  geom_text_repel(
+    data=nu, 
+    aes(x=Pct, y=FG, label=Player),
+    nudge_x = .05
+  ) +
+  labs(
+    x= "Field Goal Percentage",
+    y= "Field Goals Made",
+    title="Nebraska place kicking wasn't great in 2021",
+    subtitle="After winning B1G kicker of the year in 2020, NU's Connor Culp finished second to last \nin the FBS in field goals made and field goal percentage.", 
+    caption="Source: NCAA College Football Stats 2021 | By Jansen Coburn"
+    ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 11), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot"
+    ) 
+  
+```
+
+This graph may be a bit disheartening to look at if you're a Nebraska fan. Among all FBS kickers who attempted a minimum of 1 field goal and started in 75% of their team's games, Nebraska's placekicker Connor Culp finished second to last nationally both in total field goals made and field percentage. Perhaps most perplexing was how greatly Culp struggled considering he had just won B1G kicker of the year, the season prior.  
+
+If we run a simulation comparing Connor Culps's career field goal percentage prior to 2021 to how he performed last season, we can get a better idea as to whether or not his 50% accuracy on 12 field goal attempts from 2021 was beyond the realm of possibility or merely the result of bad luck.
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+culp <- tibble(rbinom(n = 1000, size = 12, prob = .7775)) %>% rename(Result = 1) %>% group_by(Result) %>% tally()
+
+culpmost <- culp %>% filter(Result == 10)
+culpactual <- culp %>% filter(Result == 6)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+contreraz <- tibble(rbinom(n = 1000, size = 4, prob = .867)) %>% rename(Result = 1) %>% group_by(Result) %>% tally()
+
+contrerazmost <- contreraz %>% filter(Result == 4)
+contrerazactual <- contreraz %>% filter(Result == 2)
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+bar1 <- ggplot() + 
+  geom_bar(data=contreraz, aes(x=reorder(Result, Result), weight=n)) + 
+   geom_bar(data=contrerazmost, aes(x=reorder(Result, Result), weight=n), fill="#E41C38") + 
+      geom_bar(data=contrerazactual, aes(x=reorder(Result, Result), weight=n), fill="blue") +
+  coord_flip() + 
+  labs(title="After previous success, Nebraska's place kickers \nunderperformed in 2021", subtitle = "Given their kicker career accuracy, both NU kickers should have converted more field goal attempts. \nBoth Culp and Contreraz's actual field goals made, shown in blue, were less likely to happen than \nthe amount they should have converted, shown in red. \n\nChase Contereaz",  x="Field Goals Made", y="Probability", caption = "") + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 9), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank()
+    )
+
+bar2 <- ggplot() + 
+  geom_bar(data=culp, aes(x=reorder(Result, Result), weight=n)) + 
+  geom_bar(data=culpmost, aes(x=reorder(Result, Result), weight=n), fill="#E41C38") + 
+    geom_bar(data=culpactual, aes(x=reorder(Result, Result), weight=n), fill="blue") +
+ coord_flip() + 
+  labs(title="", subtitle = "\n\n\n\n\n\nConnor Culp",  x="Field Goals Made", y="Probability", caption = "Source: NCAA College Football Data | By Jansen Coburn") + 
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 9), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank()
+    )
+
+plot_grid(bar1, bar2) 
+```
+Given Culp's career accuracy of 77.75%, if we run a simulation a thousand times, the likelihood that Culp hits 6 field goals in 12 attempts is 36 in 1,000, or 3.6%. From this, we can detract that he was very unlucky in 2021.
+
+Late in the season, Scott Frost decided to sit Culp for Iowa Western Community College transfer Chase Contereaz. Contreraz's career stats at Iowa Western looked promising. He had a career 86.7% accuracy rating. However in four field goal attempts at Nebraska, he also converted at just 50%. Some of his misses were hard to fathom.
+
+If we run the same simulation for Contreraz with his 86.7% career accuracy rating from Iowa Western, the likelihood Contreraz makes 2 field goals in 4 attempts is 107 in 1,000 simulations, or roughly 10.7%. Unlucky as well. Both, had uncharacteristically bad years.
+
+Now let's take a look at punting.
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, results=FALSE}
+college_punts <- import_college_punts(2019:2021) %>% # import (calls cfbfastR behind the scenes)
+ college_to_pro() %>% # rename columns to those used by nflfastR
+ calculate_all() # calculate as with NFL data
+```
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+biglist <- c("Michigan", "Nebraska", "Iowa", "Illinois", "Indiana", "Minnesota", "Maryland", "Michigan State", "Ohio State", "Purdue", "Wisconsin", "Rutgers", "Penn State", "Northwestern")
+
+bigtenpunting <- college_punts %>% filter(pos_team %in% biglist)
+```
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+nupunting <- bigtenpunting %>%
+  filter(pos_team == "Nebraska")
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE }
+ggplot() + 
+  geom_beeswarm(
+    data=bigtenpunting,
+    groupOnX = FALSE,
+    aes(x=NetYards, y=pos_team), color="grey") + 
+  geom_beeswarm(
+    data=nupunting, 
+    groupOnX=FALSE, 
+    aes(x=NetYards, y=pos_team), color="#E41C38") + 
+  labs(
+    x="Net Punting Yards", 
+    y="", 
+    title="Nebraska punting was wildly inconsistent", 
+    subtitle="The Huskers simultaneously saw some of the best and worst punting performances in the B1G in 2021.", 
+    caption="Source: R/cfbd_drives.R | By Jansen Coburn"
+    ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 11), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot"
+    ) 
+```
+
+Among all B1G teams, Nebraska had one of the most bi-polar years punting the ball. Starting punter William Pryzstup simultaneously had the second worst and second best punt in all of FBS football in 2021. 
+
+Second to last appeared to be a consistent theme across Nebraska special teams in 2021. At least they were consistent. Thankfully for the Cornhuskers, help is on the way. New punters, new kickers, new coaches, new year. Will it yield new results? That remains to be seen.
+
